@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Spanish Buddy Design System - Duolingo-inspired vibrant learning theme */
+/* Language Buddy Design System - Duolingo-inspired vibrant learning theme */
 
 @layer base {
   :root {
@@ -40,7 +40,7 @@
 
     --radius: 1rem;
 
-    /* Custom Spanish Buddy tokens */
+    /* Custom Language Buddy tokens */
     --success: 104 76% 44%;
     --success-foreground: 0 0% 100%;
     
