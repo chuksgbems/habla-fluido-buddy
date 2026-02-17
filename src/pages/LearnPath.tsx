@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronRight, Lock, CheckCircle2, Play } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { getLanguageConfig } from "@/lib/languages";
+import { useLanguage } from "@/hooks/useLanguage";
 
 interface Lesson {
   id: string;
@@ -31,9 +31,8 @@ interface Unit {
 export default function LearnPath() {
   const [units, setUnits] = useState<Unit[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user, profile } = useAuth();
-
-  const lang = getLanguageConfig(profile?.target_language || "spanish");
+  const { user } = useAuth();
+  const { languageConfig: lang } = useLanguage();
 
   useEffect(() => {
     async function fetchUnitsAndLessons() {
