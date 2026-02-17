@@ -9,7 +9,7 @@ import { ChevronRight, Check, X, Volume2, Lightbulb, ArrowLeft, Zap } from "luci
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { getLanguageConfig } from "@/lib/languages";
+import { useLanguage } from "@/hooks/useLanguage";
 
 interface Exercise {
   type: "translate" | "fill_blank" | "multiple_choice" | "listening";
@@ -27,13 +27,15 @@ interface LessonData {
   exercises: Exercise[];
 }
 
-const sampleExercises: Exercise[] = [
-  { type: "translate", prompt: 'Translate to the target language: "Hello, how are you?"', answer: "Hola, ¿cómo estás?", hint: "Remember: 'cómo' has an accent" },
-  { type: "multiple_choice", prompt: 'What does "buenos días" mean?', choices: ["Good night", "Good morning", "Good afternoon", "Goodbye"], answer: "Good morning" },
-  { type: "fill_blank", prompt: "Me ___ Juan. (My name is Juan)", choices: ["soy", "llamo", "tengo", "estoy"], answer: "llamo" },
-  { type: "translate", prompt: 'Translate: "Nice to meet you"', answer: "Mucho gusto", hint: "Literally means 'much pleasure'" },
-  { type: "listening", prompt: "Listen and type what you hear:", answer: "gracias", audioText: "gracias" },
-];
+function getSampleExercises(languageLabel: string): Exercise[] {
+  return [
+    { type: "translate", prompt: `Translate to ${languageLabel}: "Hello, how are you?"`, answer: "Hola, ¿cómo estás?", hint: "Remember: 'cómo' has an accent" },
+    { type: "multiple_choice", prompt: 'What does "buenos días" mean?', choices: ["Good night", "Good morning", "Good afternoon", "Goodbye"], answer: "Good morning" },
+    { type: "fill_blank", prompt: "Me ___ Juan. (My name is Juan)", choices: ["soy", "llamo", "tengo", "estoy"], answer: "llamo" },
+    { type: "translate", prompt: `Translate to ${languageLabel}: "Nice to meet you"`, answer: "Mucho gusto", hint: "Literally means 'much pleasure'" },
+    { type: "listening", prompt: "Listen and type what you hear:", answer: "gracias", audioText: "gracias" },
+  ];
+}
 
 export default function LessonPlayer() {
   const { lessonId } = useParams();
@@ -41,7 +43,7 @@ export default function LessonPlayer() {
   const { user, updateProfile, profile } = useAuth();
   const { toast } = useToast();
 
-  const lang = getLanguageConfig(profile?.target_language || "spanish");
+  const { languageConfig: lang } = useLanguage();
 
   const [lesson, setLesson] = useState<LessonData | null>(null);
   const [currentExercise, setCurrentExercise] = useState(0);
@@ -59,7 +61,7 @@ export default function LessonPlayer() {
       try {
         const { data, error } = await supabase.from("lessons").select("*").eq("id", lessonId).single();
         if (error) throw error;
-        setLesson({ ...data, exercises: sampleExercises });
+        setLesson({ ...data, exercises: getSampleExercises(lang.label) });
       } catch (error) {
         console.error("Error fetching lesson:", error);
         toast({ title: "Error", description: "Failed to load lesson", variant: "destructive" });
