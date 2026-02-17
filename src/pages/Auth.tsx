@@ -53,8 +53,8 @@ export default function Auth() {
     <div className="container flex items-center justify-center min-h-[calc(100vh-8rem)] py-8">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 text-4xl">🇪🇸</div>
-          <CardTitle className="font-display text-2xl">Welcome to Spanish Buddy</CardTitle>
+          <div className="mx-auto mb-4 text-4xl">🌍</div>
+          <CardTitle className="font-display text-2xl">Welcome to Language Buddy</CardTitle>
           <CardDescription>
             {mode === "signup" 
               ? "Create an account to start learning" 
@@ -117,7 +117,7 @@ export default function Auth() {
 
           <p className="text-center text-sm text-muted-foreground mt-6">
             {mode === "signup" 
-              ? "By signing up, you agree to learn Spanish and have fun! 🎉" 
+              ? "By signing up, you're ready to learn a new language! 🎉" 
               : "Forgot your password? Contact support."}
           </p>
         </CardContent>

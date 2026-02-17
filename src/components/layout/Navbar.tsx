@@ -38,12 +38,17 @@ export function Navbar() {
   const location = useLocation();
   const { user, profile, signOut, updateProfile } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [guestLanguage, setGuestLanguage] = useState<TargetLanguage>("spanish");
 
-  const currentLang = getLanguageConfig(profile?.target_language || "spanish");
+  const currentLang = getLanguageConfig(
+    user ? (profile?.target_language || "spanish") : guestLanguage
+  );
 
   const handleLanguageChange = async (lang: TargetLanguage) => {
     if (user) {
       await updateProfile({ target_language: lang });
+    } else {
+      setGuestLanguage(lang);
     }
   };
 

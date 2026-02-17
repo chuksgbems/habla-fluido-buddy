@@ -10,7 +10,7 @@ export function Layout() {
       </main>
       <footer className="border-t py-6 text-center text-sm text-muted-foreground">
         <div className="container">
-          <p>🇪🇸 Spanish Buddy — Learn Spanish the fun way!</p>
+          <p>🌍 Language Buddy — Learn languages the fun way!</p>
         </div>
       </footer>
     </div>
