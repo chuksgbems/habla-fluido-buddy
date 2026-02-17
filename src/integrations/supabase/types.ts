@@ -230,6 +230,7 @@ export type Database = {
           description: string | null
           icon: string | null
           id: string
+          language: string
           order_index: number
           title: string
         }
@@ -238,6 +239,7 @@ export type Database = {
           description?: string | null
           icon?: string | null
           id?: string
+          language?: string
           order_index: number
           title: string
         }
@@ -246,6 +248,7 @@ export type Database = {
           description?: string | null
           icon?: string | null
           id?: string
+          language?: string
           order_index?: number
           title?: string
         }
