@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { getLanguageConfig } from "@/lib/languages";
 import type { TargetLanguage, LanguageConfig } from "@/lib/languages";
@@ -13,24 +13,27 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const { user, profile, updateProfile } = useAuth();
-  const [guestLanguage, setGuestLanguage] = useState<TargetLanguage>("spanish");
+  const [selectedLanguage, setSelectedLanguage] = useState<TargetLanguage>("spanish");
 
-  const currentLanguage: TargetLanguage = user
-    ? (profile?.target_language || "spanish") as TargetLanguage
-    : guestLanguage;
+  // Sync from profile when it loads or changes
+  useEffect(() => {
+    if (user && profile?.target_language) {
+      setSelectedLanguage(profile.target_language as TargetLanguage);
+    }
+  }, [user, profile?.target_language]);
 
-  const languageConfig = getLanguageConfig(currentLanguage);
+  const languageConfig = getLanguageConfig(selectedLanguage);
 
-  const setLanguage = async (lang: TargetLanguage) => {
+  const setLanguage = useCallback(async (lang: TargetLanguage) => {
+    // Update local state immediately for instant UI feedback
+    setSelectedLanguage(lang);
     if (user) {
       await updateProfile({ target_language: lang });
-    } else {
-      setGuestLanguage(lang);
     }
-  };
+  }, [user, updateProfile]);
 
   return (
-    <LanguageContext.Provider value={{ currentLanguage, languageConfig, setLanguage }}>
+    <LanguageContext.Provider value={{ currentLanguage: selectedLanguage, languageConfig, setLanguage }}>
       {children}
     </LanguageContext.Provider>
   );
