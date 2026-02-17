@@ -4,10 +4,10 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Flame, Zap, BookOpen, Target, TrendingUp, Calendar, Award, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/hooks/useLanguage";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { getLanguageConfig } from "@/lib/languages";
 
 interface Stats {
   lessonsCompleted: number;
@@ -19,27 +19,37 @@ interface Stats {
 
 export default function ProgressPage() {
   const { user, profile } = useAuth();
+  const { languageConfig: lang } = useLanguage();
   const [stats, setStats] = useState<Stats>({ lessonsCompleted: 0, totalLessons: 0, quizAccuracy: 0, wordsLearned: 0, speakingAttempts: 0 });
   const [loading, setLoading] = useState(true);
-
-  const lang = getLanguageConfig(profile?.target_language || "spanish");
 
   useEffect(() => {
     async function fetchStats() {
       if (!user) { setLoading(false); return; }
       try {
-        const { count: completedCount } = await supabase.from("lesson_attempts").select("*", { count: "exact", head: true }).eq("user_id", user.id).eq("completed", true);
-        const { count: totalLessons } = await supabase.from("lessons").select("*", { count: "exact", head: true });
-        const { data: attempts } = await supabase.from("lesson_attempts").select("score").eq("user_id", user.id);
-        const avgScore = attempts?.length ? Math.round(attempts.reduce((sum, a) => sum + (a.score || 0), 0) / attempts.length) : 0;
+        // Get units for current language
+        const { data: units } = await supabase.from("units").select("id").eq("language", lang.id);
+        const unitIds = (units || []).map((u) => u.id);
+
+        // Get lessons for those units
+        const { data: langLessons } = await supabase.from("lessons").select("id").in("unit_id", unitIds.length > 0 ? unitIds : ["none"]);
+        const lessonIds = (langLessons || []).map((l) => l.id);
+        const totalLessons = lessonIds.length;
+
+        // Get completed attempts for those lessons only
+        const { data: attempts } = await supabase.from("lesson_attempts").select("lesson_id, score").eq("user_id", user.id).eq("completed", true);
+        const langAttempts = (attempts || []).filter((a) => lessonIds.includes(a.lesson_id));
+        const completedCount = new Set(langAttempts.map((a) => a.lesson_id)).size;
+        const avgScore = langAttempts.length ? Math.round(langAttempts.reduce((sum, a) => sum + (a.score || 0), 0) / langAttempts.length) : 0;
+
         const { count: wordsLearned } = await supabase.from("user_vocab_progress").select("*", { count: "exact", head: true }).eq("user_id", user.id).gte("strength", 50);
         const { count: speakingAttempts } = await supabase.from("pronunciation_attempts").select("*", { count: "exact", head: true }).eq("user_id", user.id);
-        setStats({ lessonsCompleted: completedCount || 0, totalLessons: totalLessons || 0, quizAccuracy: avgScore, wordsLearned: wordsLearned || 0, speakingAttempts: speakingAttempts || 0 });
+        setStats({ lessonsCompleted: completedCount, totalLessons, quizAccuracy: avgScore, wordsLearned: wordsLearned || 0, speakingAttempts: speakingAttempts || 0 });
       } catch (error) { console.error("Error fetching stats:", error); }
       finally { setLoading(false); }
     }
     fetchStats();
-  }, [user]);
+  }, [user, lang.id]);
 
   if (!user) {
     return (
