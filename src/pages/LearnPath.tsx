@@ -35,12 +35,22 @@ export default function LearnPath() {
   const { languageConfig: lang } = useLanguage();
 
   useEffect(() => {
+    setLoading(true);
     async function fetchUnitsAndLessons() {
       try {
-        const { data: unitsData, error: unitsError } = await supabase.from("units").select("*").order("order_index");
+        const { data: unitsData, error: unitsError } = await supabase
+          .from("units")
+          .select("*")
+          .eq("language", lang.id)
+          .order("order_index");
         if (unitsError) throw unitsError;
 
-        const { data: lessonsData, error: lessonsError } = await supabase.from("lessons").select("*").order("order_index");
+        const unitIds = (unitsData || []).map((u) => u.id);
+        const { data: lessonsData, error: lessonsError } = await supabase
+          .from("lessons")
+          .select("*")
+          .in("unit_id", unitIds.length > 0 ? unitIds : ["none"])
+          .order("order_index");
         if (lessonsError) throw lessonsError;
 
         let completedLessonIds: string[] = [];
@@ -59,7 +69,7 @@ export default function LearnPath() {
       finally { setLoading(false); }
     }
     fetchUnitsAndLessons();
-  }, [user]);
+  }, [user, lang.id]);
 
   if (loading) {
     return (
