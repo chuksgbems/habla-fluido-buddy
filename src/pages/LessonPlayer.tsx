@@ -82,10 +82,23 @@ export default function LessonPlayer() {
     }
   };
 
+  const normalizeAnswer = (text: string): string => {
+    let normalized = text.toLowerCase().trim();
+    // Strip accents/diacritics
+    normalized = normalized.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    // Strip inverted punctuation and standard punctuation
+    normalized = normalized.replace(/[¿¡!?.,:;'"()—\-]/g, "");
+    // Collapse whitespace
+    normalized = normalized.replace(/\s+/g, " ").trim();
+    return normalized;
+  };
+
   const checkAnswer = () => {
     if (!exercise) return;
     const answer = exercise.type === "multiple_choice" || exercise.type === "fill_blank" ? selectedChoice : userAnswer;
-    const correct = answer?.toLowerCase().trim() === exercise.answer.toLowerCase().trim();
+    const isExact = answer?.toLowerCase().trim() === exercise.answer.toLowerCase().trim();
+    const isFuzzy = normalizeAnswer(answer || "") === normalizeAnswer(exercise.answer);
+    const correct = isExact || isFuzzy;
     setFeedback(correct ? "correct" : "incorrect");
     setScore((prev) => ({ correct: prev.correct + (correct ? 1 : 0), total: prev.total + 1 }));
   };
