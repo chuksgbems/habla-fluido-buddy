@@ -12,9 +12,9 @@ import {
   Send, Sparkles, MessageCircle, RefreshCw, Lightbulb, CheckCircle2, Bot, User
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/hooks/useLanguage";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { getLanguageConfig } from "@/lib/languages";
 
 interface Message {
   id: string;
@@ -39,9 +39,8 @@ export default function ChatTutor() {
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { user, profile } = useAuth();
+  const { currentLanguage, languageConfig: lang } = useLanguage();
   const { toast } = useToast();
-
-  const lang = getLanguageConfig(profile?.target_language || "spanish");
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -78,7 +77,7 @@ export default function ChatTutor() {
           userLevel: profile?.level || "beginner",
           coachStyle: profile?.coach_style || "gentle",
           explainInEnglish: profile?.explain_in_english ?? true,
-          targetLanguage: profile?.target_language || "spanish",
+          targetLanguage: currentLanguage,
         },
       });
 

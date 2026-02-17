@@ -16,7 +16,8 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { LANGUAGE_LIST, getLanguageConfig } from "@/lib/languages";
+import { useLanguage } from "@/hooks/useLanguage";
+import { LANGUAGE_LIST } from "@/lib/languages";
 import type { TargetLanguage } from "@/lib/languages";
 import {
   DropdownMenu,
@@ -36,20 +37,12 @@ const navLinks = [
 
 export function Navbar() {
   const location = useLocation();
-  const { user, profile, signOut, updateProfile } = useAuth();
+  const { user, profile, signOut } = useAuth();
+  const { languageConfig: currentLang, setLanguage } = useLanguage();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [guestLanguage, setGuestLanguage] = useState<TargetLanguage>("spanish");
-
-  const currentLang = getLanguageConfig(
-    user ? (profile?.target_language || "spanish") : guestLanguage
-  );
 
   const handleLanguageChange = async (lang: TargetLanguage) => {
-    if (user) {
-      await updateProfile({ target_language: lang });
-    } else {
-      setGuestLanguage(lang);
-    }
+    await setLanguage(lang);
   };
 
   return (
