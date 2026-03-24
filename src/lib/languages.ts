@@ -1,4 +1,4 @@
-export type TargetLanguage = "spanish" | "french" | "italian" | "english";
+export type TargetLanguage = "spanish" | "english";
 
 export interface LanguageConfig {
   id: TargetLanguage;
@@ -23,28 +23,6 @@ export const LANGUAGES: Record<TargetLanguage, LanguageConfig> = {
     congratsMessage: "¡Felicidades!",
     welcomeBack: "¡Bienvenido!",
     goodbye: "¡Hasta luego!",
-  },
-  french: {
-    id: "french",
-    label: "French",
-    flag: "🇫🇷",
-    nativeName: "Français",
-    speechLang: "fr-FR",
-    greeting: "Bonjour !",
-    congratsMessage: "Félicitations !",
-    welcomeBack: "Bienvenue !",
-    goodbye: "Au revoir !",
-  },
-  italian: {
-    id: "italian",
-    label: "Italian",
-    flag: "🇮🇹",
-    nativeName: "Italiano",
-    speechLang: "it-IT",
-    greeting: "Ciao!",
-    congratsMessage: "Congratulazioni!",
-    welcomeBack: "Benvenuto!",
-    goodbye: "Arrivederci!",
   },
   english: {
     id: "english",

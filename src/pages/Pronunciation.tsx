@@ -30,22 +30,6 @@ const phrasesByLanguage: Record<TargetLanguage, PhraseItem[]> = {
     { text: "Me gustaría un café, por favor", english: "I would like a coffee, please", difficulty: "medium", tips: ["'gust-a-RÍ-a' has four syllables", "Soft 'd'"] },
     { text: "El perro corre rápido", english: "The dog runs fast", difficulty: "hard", tips: ["Strong rolled 'rr' in 'perro' and 'corre'", "Practice the trill!"] },
   ],
-  french: [
-    { text: "Bonjour, comment allez-vous ?", english: "Hello, how are you?", difficulty: "easy", tips: ["Nasal 'on' in 'bonjour'", "Silent final consonants"] },
-    { text: "Enchanté", english: "Nice to meet you", difficulty: "easy", tips: ["Nasal 'en' sound", "Stress on the last syllable"] },
-    { text: "Je voudrais un croissant", english: "I would like a croissant", difficulty: "medium", tips: ["The 'r' is uvular (back of throat)", "'oi' sounds like 'wa'"] },
-    { text: "Où est la gare ?", english: "Where is the train station?", difficulty: "medium", tips: ["'ou' sounds like 'oo'", "Silent final 'e' in 'gare'"] },
-    { text: "Il fait beau aujourd'hui", english: "The weather is nice today", difficulty: "medium", tips: ["'au' sounds like 'oh'", "Link 'fait' and 'beau'"] },
-    { text: "Je ne comprends pas", english: "I don't understand", difficulty: "hard", tips: ["Nasal vowels: 'en' and 'an'", "The 'ne...pas' wraps around the verb"] },
-  ],
-  italian: [
-    { text: "Ciao, come stai?", english: "Hello, how are you?", difficulty: "easy", tips: ["'ci' sounds like 'ch'", "All vowels are pure"] },
-    { text: "Piacere di conoscerti", english: "Nice to meet you", difficulty: "easy", tips: ["'sc' before 'e' sounds like 'sh'", "Roll the 'r' lightly"] },
-    { text: "Buongiorno", english: "Good morning", difficulty: "easy", tips: ["'gn' sounds like 'ny'", "Stress on 'GIOR'"] },
-    { text: "Dov'è il bagno?", english: "Where is the bathroom?", difficulty: "medium", tips: ["'gn' sounds like 'ny' in 'bagno'", "Short contraction 'dov'è'"] },
-    { text: "Vorrei un caffè, per favore", english: "I would like a coffee, please", difficulty: "medium", tips: ["Double 'f' in 'caffè' is longer", "Roll the 'r' in 'vorrei'"] },
-    { text: "La ragazza corre velocemente", english: "The girl runs fast", difficulty: "hard", tips: ["Double 'z' in 'ragazza' sounds like 'ts'", "Roll the 'rr' in 'corre'"] },
-  ],
   english: [
     { text: "How are you doing today?", english: "How are you doing today?", difficulty: "easy", tips: ["Stress on 'do' in 'doing'", "Natural intonation rises at end"] },
     { text: "Nice to meet you", english: "Nice to meet you", difficulty: "easy", tips: ["Link 'nice' and 'to'", "'meet' rhymes with 'feet'"] },
