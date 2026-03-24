@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { ChevronRight, Check, X, Volume2, Lightbulb, ArrowLeft, Zap } from "lucide-react";
+import { ChevronRight, Check, X, Volume2, Lightbulb, ArrowLeft, Zap, Gauge } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/hooks/useLanguage";
+import { useTTS } from "@/hooks/useTTS";
 
 interface Exercise {
   type: "translate" | "fill_blank" | "multiple_choice" | "listening";
@@ -44,6 +45,7 @@ export default function LessonPlayer() {
   const { toast } = useToast();
 
   const { languageConfig: lang } = useLanguage();
+  const { speak, speakSlow, isSpeaking } = useTTS({ language: lang.id });
 
   const [lesson, setLesson] = useState<LessonData | null>(null);
   const [currentExercise, setCurrentExercise] = useState(0);
@@ -72,15 +74,6 @@ export default function LessonPlayer() {
 
   const exercise = lesson?.exercises[currentExercise];
   const progress = lesson ? ((currentExercise + 1) / lesson.exercises.length) * 100 : 0;
-
-  const playAudio = (text: string) => {
-    if ("speechSynthesis" in window) {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = lang.speechLang;
-      utterance.rate = 0.8;
-      speechSynthesis.speak(utterance);
-    }
-  };
 
   const normalizeAnswer = (text: string): string => {
     let normalized = text.toLowerCase().trim();
@@ -156,7 +149,16 @@ export default function LessonPlayer() {
           <CardContent className="p-6 space-y-6">
             <div>
               <p className="text-lg font-medium mb-2">{exercise.prompt}</p>
-              {exercise.type === "listening" && exercise.audioText && (<Button variant="outline" onClick={() => playAudio(exercise.audioText!)} className="gap-2"><Volume2 className="h-4 w-4" />Play Audio</Button>)}
+              {exercise.type === "listening" && exercise.audioText && (
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" onClick={() => speak(exercise.audioText!)} className="gap-2" disabled={isSpeaking}>
+                    <Volume2 className={`h-4 w-4 ${isSpeaking ? "animate-pulse text-primary" : ""}`} />Play Audio
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => speakSlow(exercise.audioText!)} className="gap-2" disabled={isSpeaking}>
+                    <Gauge className="h-4 w-4" />Slow
+                  </Button>
+                </div>
+              )}
             </div>
 
             {(exercise.type === "translate" || exercise.type === "listening") && (

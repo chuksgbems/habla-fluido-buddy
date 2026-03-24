@@ -3,9 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Mic, MicOff, Volume2, RotateCcw, ChevronRight, CheckCircle2, AlertCircle } from "lucide-react";
+import { Mic, MicOff, Volume2, RotateCcw, ChevronRight, CheckCircle2, AlertCircle, Gauge } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useTTS } from "@/hooks/useTTS";
 import { getLanguageConfig } from "@/lib/languages";
 import type { TargetLanguage } from "@/lib/languages";
 
@@ -52,18 +53,9 @@ export default function Pronunciation() {
   const { profile } = useAuth();
 
   const lang = getLanguageConfig(profile?.target_language || "spanish");
+  const { speak, speakSlow, isSpeaking, rate, toggleRate } = useTTS({ language: lang.id, defaultRate: 0.7 });
   const phrases = phrasesByLanguage[lang.id] || phrasesByLanguage.spanish;
   const currentPhrase = phrases[currentIndex % phrases.length];
-
-  const playAudio = () => {
-    if ("speechSynthesis" in window) {
-      speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(currentPhrase.text);
-      utterance.lang = lang.speechLang;
-      utterance.rate = 0.7;
-      speechSynthesis.speak(utterance);
-    }
-  };
 
   const startRecording = () => {
     const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -157,7 +149,17 @@ export default function Pronunciation() {
           <div className="text-center space-y-2">
             <p className="font-display text-2xl md:text-3xl font-bold text-primary">{currentPhrase.text}</p>
             <p className="text-muted-foreground">{currentPhrase.english}</p>
-            <Button variant="ghost" size="sm" onClick={playAudio} className="gap-2"><Volume2 className="h-4 w-4" />Listen</Button>
+            <div className="flex items-center gap-2 justify-center">
+              <Button variant="ghost" size="sm" onClick={() => speak(currentPhrase.text)} className="gap-2" disabled={isSpeaking}>
+                <Volume2 className={`h-4 w-4 ${isSpeaking ? "animate-pulse text-primary" : ""}`} />Listen
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => speakSlow(currentPhrase.text)} className="gap-2" disabled={isSpeaking}>
+                <Gauge className="h-4 w-4" />Slow
+              </Button>
+              <Button variant="ghost" size="icon" onClick={toggleRate} className="h-8 w-8 text-xs font-mono text-muted-foreground" title="Toggle default speed">
+                {rate <= 0.5 ? "0.5×" : "0.7×"}
+              </Button>
+            </div>
           </div>
 
           <div className="bg-muted/50 rounded-lg p-4">
