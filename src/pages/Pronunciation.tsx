@@ -149,7 +149,17 @@ export default function Pronunciation() {
           <div className="text-center space-y-2">
             <p className="font-display text-2xl md:text-3xl font-bold text-primary">{currentPhrase.text}</p>
             <p className="text-muted-foreground">{currentPhrase.english}</p>
-            <Button variant="ghost" size="sm" onClick={playAudio} className="gap-2"><Volume2 className="h-4 w-4" />Listen</Button>
+            <div className="flex items-center gap-2 justify-center">
+              <Button variant="ghost" size="sm" onClick={() => speak(currentPhrase.text)} className="gap-2" disabled={isSpeaking}>
+                <Volume2 className={`h-4 w-4 ${isSpeaking ? "animate-pulse text-primary" : ""}`} />Listen
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => speakSlow(currentPhrase.text)} className="gap-2" disabled={isSpeaking}>
+                <Gauge className="h-4 w-4" />Slow
+              </Button>
+              <Button variant="ghost" size="icon" onClick={toggleRate} className="h-8 w-8 text-xs font-mono text-muted-foreground" title="Toggle default speed">
+                {rate <= 0.5 ? "0.5×" : "0.7×"}
+              </Button>
+            </div>
           </div>
 
           <div className="bg-muted/50 rounded-lg p-4">
