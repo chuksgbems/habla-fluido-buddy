@@ -48,6 +48,32 @@ export default function LessonPlayer() {
   const { speak, speakSlow, isSpeaking } = useTTS({ language: lang.id });
 
   const [lesson, setLesson] = useState<LessonData | null>(null);
+  const [currentExercise, setCurrentExercise] = useState(0);
+  const [userAnswer, setUserAnswer] = useState("");
+  const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<"correct" | "incorrect" | null>(null);
+  const [showHint, setShowHint] = useState(false);
+  const [score, setScore] = useState({ correct: 0, total: 0 });
+  const [completed, setCompleted] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchLesson() {
+      if (!lessonId) return;
+      try {
+        const { data, error } = await supabase.from("lessons").select("*").eq("id", lessonId).single();
+        if (error) throw error;
+        setLesson({ ...data, exercises: getSampleExercises(lang.label) });
+      } catch (error) {
+        console.error("Error fetching lesson:", error);
+        toast({ title: "Error", description: "Failed to load lesson", variant: "destructive" });
+      } finally { setLoading(false); }
+    }
+    fetchLesson();
+  }, [lessonId]);
+
+  const exercise = lesson?.exercises[currentExercise];
+  const progress = lesson ? ((currentExercise + 1) / lesson.exercises.length) * 100 : 0;
 
   const normalizeAnswer = (text: string): string => {
     let normalized = text.toLowerCase().trim();
