@@ -3,9 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Mic, MicOff, Volume2, RotateCcw, ChevronRight, CheckCircle2, AlertCircle } from "lucide-react";
+import { Mic, MicOff, Volume2, RotateCcw, ChevronRight, CheckCircle2, AlertCircle, Gauge } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useTTS } from "@/hooks/useTTS";
 import { getLanguageConfig } from "@/lib/languages";
 import type { TargetLanguage } from "@/lib/languages";
 
