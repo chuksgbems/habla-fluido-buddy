@@ -123,7 +123,16 @@ export default function LessonPlayer() {
           <CardContent className="p-6 space-y-6">
             <div>
               <p className="text-lg font-medium mb-2">{exercise.prompt}</p>
-              {exercise.type === "listening" && exercise.audioText && (<Button variant="outline" onClick={() => playAudio(exercise.audioText!)} className="gap-2"><Volume2 className="h-4 w-4" />Play Audio</Button>)}
+              {exercise.type === "listening" && exercise.audioText && (
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" onClick={() => speak(exercise.audioText!)} className="gap-2" disabled={isSpeaking}>
+                    <Volume2 className={`h-4 w-4 ${isSpeaking ? "animate-pulse text-primary" : ""}`} />Play Audio
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => speakSlow(exercise.audioText!)} className="gap-2" disabled={isSpeaking}>
+                    <Gauge className="h-4 w-4" />Slow
+                  </Button>
+                </div>
+              )}
             </div>
 
             {(exercise.type === "translate" || exercise.type === "listening") && (
