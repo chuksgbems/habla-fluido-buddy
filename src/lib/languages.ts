@@ -1,4 +1,4 @@
-export type TargetLanguage = "spanish" | "french" | "italian" | "english";
+export type TargetLanguage = "spanish" | "english";
 
 export interface LanguageConfig {
   id: TargetLanguage;
