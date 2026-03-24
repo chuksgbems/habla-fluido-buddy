@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { ChevronRight, Check, X, Volume2, Lightbulb, ArrowLeft, Zap } from "lucide-react";
+import { ChevronRight, Check, X, Volume2, Lightbulb, ArrowLeft, Zap, Gauge } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/hooks/useLanguage";
+import { useTTS } from "@/hooks/useTTS";
 
 interface Exercise {
   type: "translate" | "fill_blank" | "multiple_choice" | "listening";
