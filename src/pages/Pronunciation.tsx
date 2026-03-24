@@ -53,18 +53,9 @@ export default function Pronunciation() {
   const { profile } = useAuth();
 
   const lang = getLanguageConfig(profile?.target_language || "spanish");
+  const { speak, speakSlow, isSpeaking, rate, toggleRate } = useTTS({ language: lang.id, defaultRate: 0.7 });
   const phrases = phrasesByLanguage[lang.id] || phrasesByLanguage.spanish;
   const currentPhrase = phrases[currentIndex % phrases.length];
-
-  const playAudio = () => {
-    if ("speechSynthesis" in window) {
-      speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(currentPhrase.text);
-      utterance.lang = lang.speechLang;
-      utterance.rate = 0.7;
-      speechSynthesis.speak(utterance);
-    }
-  };
 
   const startRecording = () => {
     const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
