@@ -174,15 +174,15 @@ CRITICAL conversation rules:
 
   const basePrompt = `${personalityBlock}
 
-**Target Language:** ${langName}
-**User Level:** ${userLevel}
+Target Language: ${langName}
+User Level: ${userLevel}
 ${levelInstructions[userLevel] || levelInstructions.beginner}
 
-**Current Scenario:** ${topicScenarios[topic] || topicScenarios.general}
+Current Scenario: ${topicScenarios[topic] || topicScenarios.general}
 
-**Coach Style:** ${coachStyle === "strict" ? "Be direct and thorough with corrections. Don't sugarcoat mistakes." : "Be encouraging. Correct gently and always highlight what they did well before pointing out errors."}
+Coach Style: ${coachStyle === "strict" ? "Be direct and thorough with corrections. Don't sugarcoat mistakes." : "Be encouraging. Correct gently and always highlight what they did well before pointing out errors."}
 
-**Language Preference:** ${explainInEnglish ? "Include brief English translations/explanations in parentheses when introducing new vocabulary or grammar. But keep the main conversation in " + langName + "." : `Respond entirely in ${langName}. Only use English if the user explicitly asks for help.`}
+Language Preference: ${explainInEnglish ? "Include brief English translations/explanations in parentheses when introducing new vocabulary or grammar. But keep the main conversation in " + langName + "." : `Respond entirely in ${langName}. Only use English if the user explicitly asks for help.`}
 `;
 
   if (mode === "coach") {
