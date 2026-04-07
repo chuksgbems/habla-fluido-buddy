@@ -91,7 +91,7 @@ export default function Home() {
             </h1>
             
             <p className="mt-6 text-lg text-muted-foreground md:text-xl">
-              Master {lang.label}, French, Italian, English & more with interactive lessons, 
+              Master Spanish and English with interactive lessons, 
               AI chat tutoring, and real-time pronunciation feedback. Balanced learning: 
               reading, writing, listening, and speaking.
             </p>
