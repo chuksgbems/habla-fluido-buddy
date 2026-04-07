@@ -10,7 +10,8 @@ import { useTTS } from "@/hooks/useTTS";
 import { getLanguageConfig } from "@/lib/languages";
 import type { TargetLanguage } from "@/lib/languages";
 
-interface SpeechRecognitionEvent { results: { [key: number]: { [key: number]: { transcript: string } } }; }
+interface SpeechRecognitionResult { transcript: string; confidence: number; }
+interface SpeechRecognitionEvent { results: { [key: number]: { [key: number]: SpeechRecognitionResult } }; }
 interface SpeechRecognitionErrorEvent { error: string; }
 interface SpeechRecognitionInstance {
   lang: string; continuous: boolean; interimResults: boolean;
