@@ -47,7 +47,7 @@ const features = [
 ];
 
 const stats = [
-  { value: "4", label: "Languages", icon: Globe },
+  { value: "2", label: "Languages", icon: Globe },
   { value: "∞", label: "Practice Sessions", icon: Zap },
   { value: "AI", label: "Powered Tutor", icon: Sparkles },
 ];
