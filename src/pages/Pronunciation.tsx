@@ -71,9 +71,11 @@ export default function Pronunciation() {
     recognitionRef.current.interimResults = false;
 
     recognitionRef.current.onresult = (event) => {
-      const result = event.results[0][0].transcript;
-      setTranscript(result);
-      evaluatePronunciation(result);
+      const result = event.results[0][0];
+      const spokenText = result.transcript;
+      const confidence = result.confidence; // 0–1 from the STT engine
+      setTranscript(spokenText);
+      evaluatePronunciation(spokenText, confidence);
     };
 
     recognitionRef.current.onerror = (event) => {
@@ -95,27 +97,77 @@ export default function Pronunciation() {
 
   const stopRecording = () => { recognitionRef.current?.stop(); setIsRecording(false); };
 
-  const evaluatePronunciation = (spokenText: string) => {
-    const target = currentPhrase.text.toLowerCase().replace(/[¿¡.,!?'"]/g, "");
-    const spoken = spokenText.toLowerCase().replace(/[¿¡.,!?'"]/g, "");
+  // Levenshtein distance for character-level comparison
+  const levenshtein = (a: string, b: string): number => {
+    const m = a.length, n = b.length;
+    const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+    for (let i = 0; i <= m; i++) dp[i][0] = i;
+    for (let j = 0; j <= n; j++) dp[0][j] = j;
+    for (let i = 1; i <= m; i++) {
+      for (let j = 1; j <= n; j++) {
+        dp[i][j] = a[i - 1] === b[j - 1]
+          ? dp[i - 1][j - 1]
+          : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+      }
+    }
+    return dp[m][n];
+  };
+
+  const normalize = (text: string): string => {
+    return text
+      .toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // strip accents
+      .replace(/[¿¡.,!?'";\-:()]/g, "") // strip punctuation
+      .replace(/\s+/g, " ")
+      .trim();
+  };
+
+  const evaluatePronunciation = (spokenText: string, confidence: number) => {
+    const target = normalize(currentPhrase.text);
+    const spoken = normalize(spokenText);
+
+    // 1. Character-level similarity via Levenshtein
+    const maxLen = Math.max(target.length, spoken.length, 1);
+    const charSimilarity = Math.max(0, 1 - levenshtein(target, spoken) / maxLen);
+
+    // 2. Word-level matching
     const targetWords = target.split(" ");
     const spokenWords = spoken.split(" ");
-    let matchCount = 0;
     const feedbackItems: string[] = [];
+    let wordMatches = 0;
 
     targetWords.forEach((word, i) => {
-      if (spokenWords[i] && spokenWords[i] === word) { matchCount++; }
-      else if (spokenWords[i]) { feedbackItems.push(`"${spokenWords[i]}" should be "${word}"`); }
-      else { feedbackItems.push(`Missing word: "${word}"`); }
+      if (spokenWords[i] && spokenWords[i] === word) {
+        wordMatches++;
+      } else if (spokenWords[i]) {
+        feedbackItems.push(`"${spokenWords[i]}" should be "${word}"`);
+      } else {
+        feedbackItems.push(`Missing word: "${word}"`);
+      }
     });
 
-    const similarityScore = Math.round((matchCount / targetWords.length) * 100);
-    setScore(similarityScore);
+    // Extra words spoken
+    if (spokenWords.length > targetWords.length) {
+      feedbackItems.push(`Extra words detected at the end`);
+    }
+
+    const wordSimilarity = targetWords.length > 0 ? wordMatches / targetWords.length : 0;
+
+    // 3. Combine: 40% char similarity, 30% word similarity, 30% STT confidence
+    const sttConfidence = typeof confidence === "number" && confidence > 0 ? confidence : 0.5;
+    const rawScore = (charSimilarity * 0.4) + (wordSimilarity * 0.3) + (sttConfidence * 0.3);
+    const similarityScore = Math.round(Math.min(rawScore * 100, 100));
+
+    // If the spoken text is completely different, cap the score
+    const finalScore = charSimilarity < 0.3 ? Math.min(similarityScore, 30) : similarityScore;
+
+    setScore(finalScore);
     setFeedback(feedbackItems.slice(0, 3));
     setAttempts((prev) => prev + 1);
 
-    if (similarityScore >= 80) toast({ title: `${lang.congratsMessage} 🎉`, description: "Great pronunciation!" });
-    else if (similarityScore >= 50) toast({ title: "Good try! 👍", description: "Keep practicing." });
+    if (finalScore >= 80) toast({ title: `${lang.congratsMessage}`, description: "Great pronunciation!" });
+    else if (finalScore >= 50) toast({ title: "Good try!", description: "Keep practicing." });
+    else toast({ title: "Needs work", description: "Listen to the phrase and try again." });
   };
 
   const nextPhrase = () => { setCurrentIndex((prev) => (prev + 1) % phrases.length); setTranscript(""); setScore(null); setFeedback([]); setAttempts(0); };
