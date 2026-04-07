@@ -69,17 +69,17 @@ serve(async (req) => {
         body: JSON.stringify(buildRequestBody()),
       });
 
-    let response = await callGemini("gemini-2.0-flash");
+    let response = await callGemini("gemini-2.5-flash");
 
     if (response.status === 429) {
       const retryAfterHeader = response.headers.get("retry-after");
       const retryDelayMs = Math.min(Math.max(Number(retryAfterHeader || "1"), 1), 4) * 1000;
       await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
-      response = await callGemini("gemini-2.0-flash");
+      response = await callGemini("gemini-2.5-flash");
     }
 
     if (response.status === 429) {
-      response = await callGemini("gemini-1.5-flash");
+      response = await callGemini("gemini-2.0-flash-lite");
     }
 
     if (!response.ok) {
