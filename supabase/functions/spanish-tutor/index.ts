@@ -77,21 +77,13 @@ serve(async (req) => {
     console.log("Gemini API response status:", response.status);
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Gemini API error details:", response.status, errorText);
+      console.error("Gemini API error:", response.status, errorText);
       if (response.status === 429) {
         return new Response(
           JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "Usage limit reached. Please add credits to continue." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      const errorText = await response.text();
-      console.error("Gemini API error:", response.status, errorText);
       throw new Error(`Gemini API error: ${response.status}`);
     }
 
