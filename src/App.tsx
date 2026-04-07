@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { LanguageProvider } from "@/hooks/useLanguage";
+import { AuthGuard } from "@/components/AuthGuard";
 import { Layout } from "@/components/layout/Layout";
 import Home from "./pages/Home";
 import LearnPath from "./pages/LearnPath";
@@ -30,14 +31,14 @@ const App = () => (
             <Routes>
               <Route element={<Layout />}>
                 <Route path="/" element={<Home />} />
-                <Route path="/learn" element={<LearnPath />} />
-                <Route path="/lesson/:lessonId" element={<LessonPlayer />} />
-                <Route path="/chat" element={<ChatTutor />} />
-                <Route path="/practice" element={<Practice />} />
-                <Route path="/pronunciation" element={<Pronunciation />} />
-                <Route path="/progress" element={<ProgressPage />} />
+                <Route path="/learn" element={<AuthGuard><LearnPath /></AuthGuard>} />
+                <Route path="/lesson/:lessonId" element={<AuthGuard><LessonPlayer /></AuthGuard>} />
+                <Route path="/chat" element={<AuthGuard><ChatTutor /></AuthGuard>} />
+                <Route path="/practice" element={<AuthGuard><Practice /></AuthGuard>} />
+                <Route path="/pronunciation" element={<AuthGuard><Pronunciation /></AuthGuard>} />
+                <Route path="/progress" element={<AuthGuard><ProgressPage /></AuthGuard>} />
                 <Route path="/auth" element={<Auth />} />
-                <Route path="/settings" element={<Settings />} />
+                <Route path="/settings" element={<AuthGuard><Settings /></AuthGuard>} />
                 <Route path="*" element={<NotFound />} />
               </Route>
             </Routes>
