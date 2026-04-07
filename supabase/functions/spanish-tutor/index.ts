@@ -74,7 +74,10 @@ serve(async (req) => {
       }
     );
 
+    console.log("Gemini API response status:", response.status);
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Gemini API error details:", response.status, errorText);
       if (response.status === 429) {
         return new Response(
           JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
