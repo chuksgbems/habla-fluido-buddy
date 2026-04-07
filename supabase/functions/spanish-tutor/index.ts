@@ -22,9 +22,9 @@ serve(async (req) => {
   }
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) {
+      throw new Error("GEMINI_API_KEY is not configured");
     }
 
     const { 
@@ -40,27 +40,31 @@ serve(async (req) => {
 
     const systemPrompt = buildSystemPrompt(mode, topic, userLevel, coachStyle, explainInEnglish, targetLanguage);
 
-    const messages = [
-      { role: "system", content: systemPrompt },
-      ...conversationHistory.slice(-10),
-      { role: "user", content: message },
-    ];
+    const history = conversationHistory.slice(-10).map((msg) => ({
+      role: msg.role === "assistant" ? "model" : "user",
+      parts: [{ text: msg.content }],
+    }));
 
     const temperature = mode === "free" ? 0.85 : 0.7;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages,
-        max_tokens: 1024,
-        temperature,
-      }),
-    });
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: systemPrompt }] },
+          contents: [
+            ...history,
+            { role: "user", parts: [{ text: message }] },
+          ],
+          generationConfig: {
+            temperature,
+            maxOutputTokens: 1024,
+          },
+        }),
+      }
+    );
 
     if (!response.ok) {
       if (response.status === 429) {
@@ -76,12 +80,12 @@ serve(async (req) => {
         );
       }
       const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
-      throw new Error(`AI gateway error: ${response.status}`);
+      console.error("Gemini API error:", response.status, errorText);
+      throw new Error(`Gemini API error: ${response.status}`);
     }
 
     const data = await response.json();
-    const reply = data.choices?.[0]?.message?.content || "Sorry, I couldn't generate a response.";
+    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I couldn't generate a response.";
 
     return new Response(
       JSON.stringify({ reply }),
