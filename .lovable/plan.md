@@ -1,43 +1,54 @@
 
 
-# Fix Generic Chat Tutor Responses
+# Remove Lovable Branding Before Deployment
 
-## Problem
-The system prompt is broad and lacks specificity. The AI gives textbook-style responses instead of engaging, contextual, personalized replies. Key issues:
+Here is every place in your source code that references Lovable, and what to do about each.
 
-1. **Topic context is too vague** — just a label like "general conversation practice" with no scenario or situational framing
-2. **No conversation memory guidance** — the prompt doesn't tell the AI to build on what the user said, reference earlier messages, or maintain a thread
-3. **No personality depth** — "friendly and encouraging" is generic; no quirks, teaching style, or conversational hooks
-4. **No examples** — the AI has no few-shot examples showing what good responses look like
-5. **Temperature 0.7** — reasonable but combined with vague prompts produces safe, bland output
+---
 
-## Plan
+## 1. `index.html` — OG/Twitter images and meta tags
 
-### 1. Enrich topic prompts with scenarios (edge function)
-Replace one-line topic descriptions with rich situational contexts. Example:
-- **Travel**: "You and the user are at a train station in Madrid. Help them buy a ticket, ask about destinations, and practice directions. Use realistic dialogue."
-- **Food**: "You're a waiter at a restaurant. Take the user's order, suggest dishes, and chat about food preferences."
+| Line | Current | Change to |
+|------|---------|-----------|
+| 12 | `og:image` pointing to `lovable.dev/opengraph-image-p98pqg.png` | Replace with your own OG image URL (host your own image) |
+| 15 | `twitter:site` set to `@Lovable` | Change to your own Twitter handle or remove |
+| 16 | `twitter:image` pointing to `lovable.dev/...` | Replace with your own image URL |
 
-### 2. Add personality and teaching identity
-Give the tutor a consistent personality: a name ("Buddy"), a backstory (grew up in Mexico City / learned English as a second language), and conversational habits (uses humor, references pop culture, asks personal questions).
+## 2. `vite.config.ts` — lovable-tagger plugin (line 4, 15)
 
-### 3. Add conversation continuity instructions
-Tell the AI explicitly: "Reference what the user said in previous messages. Build on the conversation thread. Don't restart the topic each turn. Remember details they shared."
+The `lovable-tagger` package adds `data-lov-id` attributes to components in development mode. It does NOT appear in production builds, so it is harmless. But to fully remove the trace:
 
-### 4. Improve coach mode with richer feedback
-Instead of just a correction template, add instructions like: "Give a cultural tip related to the correction" and "Use real-world examples of where natives would use this phrase."
+- Remove the `import { componentTagger } from "lovable-tagger"` import
+- Remove `mode === "development" && componentTagger()` from the plugins array
+- Optionally remove `lovable-tagger` from `package.json` devDependencies
 
-### 5. Add few-shot examples to prompts
-Include 1-2 example exchanges in both modes so the AI understands the tone and depth expected.
+## 3. Published site badge — "Edit with Lovable" badge
 
-### 6. Adjust model parameters
-Bump temperature slightly to 0.8 for free chat mode to encourage more natural, varied responses.
+The published deployment currently shows an "Edit with Lovable" badge. This can be hidden via settings (requires Pro plan). I can toggle it off for you if you have a Pro plan.
 
-## Files Changed
-- `supabase/functions/spanish-tutor/index.ts` — rewrite `buildSystemPrompt` with richer scenarios, personality, continuity instructions, and few-shot examples; adjust temperature per mode
+## 4. `supabase/functions/spanish-tutor/index.ts` — AI gateway (lines 25-27, 52, 55)
 
-## Technical Detail
-- All changes are in the edge function's prompt engineering — no database or frontend changes needed
-- The conversation history (last 10 messages) is already sent; we just need to instruct the AI to use it better
-- French/Italian references in the language map will be cleaned up as part of this edit
+This uses `LOVABLE_API_KEY` and `ai.gateway.lovable.dev` to power the AI chat tutor. **You cannot remove this** unless you replace it with your own AI provider (e.g., direct OpenAI/Google API key). The gateway URL and key are backend-only — users never see them. They do not appear in the browser or frontend code.
+
+## 5. `README.md`
+
+Contains default Lovable project template text. Replace with your own project README.
+
+---
+
+## Summary
+
+| Item | Visible to users? | Action |
+|------|--------------------|--------|
+| OG image & Twitter meta | Yes (when sharing links) | Replace with your own images/handles |
+| lovable-tagger | No (dev only) | Remove import + plugin for cleanliness |
+| Published badge | Yes (bottom of site) | Hide via settings (Pro plan required) |
+| AI gateway URL/key | No (server-side only) | Leave as-is, or swap to your own AI provider |
+| README.md | No (GitHub only) | Rewrite with your own content |
+
+## Files to change
+- `index.html` — replace OG/Twitter meta tags
+- `vite.config.ts` — remove lovable-tagger import and plugin usage
+- `package.json` — remove lovable-tagger from devDependencies
+- `README.md` — rewrite
 
