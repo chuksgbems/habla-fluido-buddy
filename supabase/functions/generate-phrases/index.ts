@@ -58,7 +58,7 @@ Return ONLY the JSON array.`;
         body: JSON.stringify({
           system_instruction: { parts: [{ text: systemPrompt }] },
           contents: [{ role: "user", parts: [{ text: `Generate 12 ${tier}-level pronunciation phrases in ${langName}.` }] }],
-          generationConfig: { temperature: 0.9, maxOutputTokens: 2048 },
+          generationConfig: { temperature: 0.9, maxOutputTokens: 4096 },
         }),
       });
 
@@ -83,12 +83,26 @@ Return ONLY the JSON array.`;
     let text = data.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
     text = text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
 
+    // Robust JSON extraction
+    const jsonStart = text.search(/[\[{]/);
+    const jsonEnd = Math.max(text.lastIndexOf(']'), text.lastIndexOf('}'));
+    if (jsonStart !== -1 && jsonEnd > jsonStart) {
+      text = text.substring(jsonStart, jsonEnd + 1);
+    }
+    // Fix common issues: trailing commas, control chars
+    text = text.replace(/,\s*([}\]])/g, "$1").replace(/[\x00-\x1F\x7F]/g, "");
+
     let phrases;
     try {
       phrases = JSON.parse(text);
     } catch {
-      console.error("Failed to parse phrases JSON:", text);
+      console.error("Failed to parse phrases JSON:", text.substring(0, 500));
       throw new Error("Failed to parse AI-generated phrases");
+    }
+
+    // Ensure we have valid phrases array
+    if (!Array.isArray(phrases) || phrases.length === 0) {
+      throw new Error("No valid phrases generated");
     }
 
     return new Response(
