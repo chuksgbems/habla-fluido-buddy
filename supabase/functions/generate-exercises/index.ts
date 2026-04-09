@@ -59,9 +59,8 @@ Rules:
 
 Return ONLY the JSON array, no markdown, no explanation.`;
 
-    const response = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
-      {
+    const callGemini = (model: string) =>
+      fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -72,13 +71,24 @@ Return ONLY the JSON array, no markdown, no explanation.`;
           contents: [{ role: "user", parts: [{ text: `Generate 6 ${difficultyProgression}-difficulty exercises for the "${lessonTitle}" lesson in ${langName}. Return only the JSON array.` }] }],
           generationConfig: { temperature: 0.8, maxOutputTokens: 2048 },
         }),
-      }
-    );
+      });
 
-    if (!response.ok) {
+    // Try models in order with fallbacks
+    const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
+    let response: Response | null = null;
+
+    for (const model of models) {
+      response = await callGemini(model);
+      if (response.ok) break;
       const errText = await response.text();
-      console.error("Gemini error:", response.status, errText);
-      throw new Error(`Gemini API error: ${response.status}`);
+      console.error(`Gemini ${model} error:`, response.status, errText);
+      if (response.status !== 503 && response.status !== 429) {
+        throw new Error(`Gemini API error: ${response.status}`);
+      }
+    }
+
+    if (!response || !response.ok) {
+      throw new Error("All Gemini models unavailable");
     }
 
     const data = await response.json();
