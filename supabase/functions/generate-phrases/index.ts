@@ -58,7 +58,7 @@ Return ONLY the JSON array.`;
         body: JSON.stringify({
           system_instruction: { parts: [{ text: systemPrompt }] },
           contents: [{ role: "user", parts: [{ text: `Generate 12 ${tier}-level pronunciation phrases in ${langName}.` }] }],
-          generationConfig: { temperature: 0.9, maxOutputTokens: 4096 },
+          generationConfig: { temperature: 0.9, maxOutputTokens: 8192, responseMimeType: "application/json" },
         }),
       });
 
