@@ -79,7 +79,7 @@ serve(async (req) => {
     }
 
     if (response.status === 429) {
-      response = await callGemini("gemini-2.0-flash-lite");
+      response = await callGemini("gemini-2.5-flash-lite");
     }
 
     if (!response.ok) {
