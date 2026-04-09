@@ -58,7 +58,7 @@ Return ONLY the JSON array.`;
         body: JSON.stringify({
           system_instruction: { parts: [{ text: systemPrompt }] },
           contents: [{ role: "user", parts: [{ text: `Generate 12 ${tier}-level pronunciation phrases in ${langName}.` }] }],
-          generationConfig: { temperature: 0.9, maxOutputTokens: 4096 },
+          generationConfig: { temperature: 0.9, maxOutputTokens: 8192, responseMimeType: "application/json" },
         }),
       });
 
@@ -96,8 +96,20 @@ Return ONLY the JSON array.`;
     try {
       phrases = JSON.parse(text);
     } catch {
-      console.error("Failed to parse phrases JSON:", text.substring(0, 500));
-      throw new Error("Failed to parse AI-generated phrases");
+      // Try to salvage truncated JSON by finding last complete object
+      const lastComplete = text.lastIndexOf('}');
+      if (lastComplete !== -1) {
+        const salvaged = text.substring(0, lastComplete + 1) + ']';
+        try {
+          phrases = JSON.parse(salvaged);
+        } catch {
+          console.error("Failed to parse phrases JSON:", text.substring(0, 500));
+          throw new Error("Failed to parse AI-generated phrases");
+        }
+      } else {
+        console.error("Failed to parse phrases JSON:", text.substring(0, 500));
+        throw new Error("Failed to parse AI-generated phrases");
+      }
     }
 
     // Ensure we have valid phrases array
