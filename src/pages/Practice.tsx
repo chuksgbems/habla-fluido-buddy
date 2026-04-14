@@ -21,6 +21,10 @@ interface VocabItem {
 
 type PracticeMode = "flashcards" | "multiple-choice" | "typing" | "speaking";
 
+function normalize(text: string): string {
+  return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9\s]/g, "").trim();
+}
+
 export default function Practice() {
   const [mode, setMode] = useState<PracticeMode>("flashcards");
   const [vocabulary, setVocabulary] = useState<VocabItem[]>([]);
