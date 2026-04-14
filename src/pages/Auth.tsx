@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 
 export default function Auth() {
@@ -18,7 +17,6 @@ export default function Auth() {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [loading, setLoading] = useState(false);
-  const [forgotPassword, setForgotPassword] = useState(false);
   const { signIn, signUp, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -40,38 +38,6 @@ export default function Auth() {
         await signIn(email, password);
         navigate("/learn");
       }
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Something went wrong",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleForgotPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email) {
-      toast({
-        title: "Enter your email",
-        description: "Please enter your email address first.",
-        variant: "destructive",
-      });
-      return;
-    }
-    setLoading(true);
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-      if (error) throw error;
-      toast({
-        title: "Check your email! 📧",
-        description: "We sent you a password reset link.",
-      });
-      setForgotPassword(false);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -149,50 +115,11 @@ export default function Auth() {
             </form>
           </Tabs>
 
-          {forgotPassword ? (
-            <form onSubmit={handleForgotPassword} className="mt-6 space-y-4">
-              <p className="text-center text-sm text-muted-foreground">
-                Enter your email and we'll send you a reset link.
-              </p>
-              <div className="space-y-2">
-                <Label htmlFor="reset-email">Email</Label>
-                <Input
-                  id="reset-email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Send Reset Link
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                className="w-full"
-                onClick={() => setForgotPassword(false)}
-              >
-                Back to Sign In
-              </Button>
-            </form>
-          ) : (
-            <p className="text-center text-sm text-muted-foreground mt-6">
-              {mode === "signup" 
-                ? "By signing up, you're ready to learn a new language! 🎉" 
-                : (
-                  <button
-                    type="button"
-                    className="underline hover:text-foreground transition-colors"
-                    onClick={() => setForgotPassword(true)}
-                  >
-                    Forgot your password?
-                  </button>
-                )}
-            </p>
-          )}
+          <p className="text-center text-sm text-muted-foreground mt-6">
+            {mode === "signup" 
+              ? "By signing up, you're ready to learn a new language! 🎉" 
+              : "Forgot your password? Contact support."}
+          </p>
         </CardContent>
       </Card>
     </div>
