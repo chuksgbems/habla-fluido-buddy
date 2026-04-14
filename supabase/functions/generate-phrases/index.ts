@@ -5,6 +5,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const AI_GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+
 type Phrase = {
   text: string;
   english: string;
@@ -13,15 +15,9 @@ type Phrase = {
 };
 
 const refusalIndicators = [
-  "i cannot",
-  "i can't",
-  "i am unable",
-  "i'm unable",
-  "as an ai",
-  "as a language model",
-  "i apologize",
-  "sorry, but",
-  "cannot comply",
+  "i cannot", "i can't", "i am unable", "i'm unable",
+  "as an ai", "as a language model", "i apologize",
+  "sorry, but", "cannot comply",
 ];
 
 function detectRefusal(content: string) {
@@ -51,21 +47,13 @@ function extractBalancedJsonBlock(content: string) {
     const char = content[i];
 
     if (inString) {
-      if (escaped) {
-        escaped = false;
-      } else if (char === "\\") {
-        escaped = true;
-      } else if (char === '"') {
-        inString = false;
-      }
+      if (escaped) { escaped = false; }
+      else if (char === "\\") { escaped = true; }
+      else if (char === '"') { inString = false; }
       continue;
     }
 
-    if (char === '"') {
-      inString = true;
-      continue;
-    }
-
+    if (char === '"') { inString = true; continue; }
     if (char === "{" || char === "[") depth += 1;
     if (char === "}" || char === "]") depth -= 1;
 
@@ -85,21 +73,12 @@ function repairJsonClosures(content: string) {
 
   for (const char of content) {
     if (inString) {
-      if (escaped) {
-        escaped = false;
-      } else if (char === "\\") {
-        escaped = true;
-      } else if (char === '"') {
-        inString = false;
-      }
+      if (escaped) { escaped = false; }
+      else if (char === "\\") { escaped = true; }
+      else if (char === '"') { inString = false; }
       continue;
     }
-
-    if (char === '"') {
-      inString = true;
-      continue;
-    }
-
+    if (char === '"') { inString = true; continue; }
     if (char === "{") braces += 1;
     if (char === "}") braces = Math.max(0, braces - 1);
     if (char === "[") brackets += 1;
@@ -120,20 +99,13 @@ function extractObjectsFromArray(content: string) {
     const char = content[i];
 
     if (inString) {
-      if (escaped) {
-        escaped = false;
-      } else if (char === "\\") {
-        escaped = true;
-      } else if (char === '"') {
-        inString = false;
-      }
+      if (escaped) { escaped = false; }
+      else if (char === "\\") { escaped = true; }
+      else if (char === '"') { inString = false; }
       continue;
     }
 
-    if (char === '"') {
-      inString = true;
-      continue;
-    }
+    if (char === '"') { inString = true; continue; }
 
     if (char === "{") {
       if (depth === 0) objectStart = i;
@@ -153,7 +125,6 @@ function extractObjectsFromArray(content: string) {
 function isPhrase(value: unknown): value is Phrase {
   if (!value || typeof value !== "object") return false;
   const phrase = value as Record<string, unknown>;
-
   return typeof phrase.text === "string"
     && typeof phrase.english === "string"
     && ["easy", "medium", "hard"].includes(String(phrase.difficulty))
@@ -163,7 +134,6 @@ function isPhrase(value: unknown): value is Phrase {
 
 function normalizePhrases(value: unknown) {
   if (!Array.isArray(value)) return [];
-
   return value
     .filter(isPhrase)
     .map((phrase) => ({
@@ -212,44 +182,30 @@ function buildFallbackPhrases(language: string): Phrase[] {
 
 function parsePhrasesResponse(content: string) {
   const cleaned = sanitizeJsonText(content);
-
-  if (!cleaned) {
-    throw new Error("Empty AI response");
-  }
-
-  if (detectRefusal(cleaned)) {
-    throw new Error("AI model refused phrase generation");
-  }
+  if (!cleaned) throw new Error("Empty AI response");
+  if (detectRefusal(cleaned)) throw new Error("AI model refused phrase generation");
 
   const attempts = [cleaned];
   const balancedBlock = extractBalancedJsonBlock(cleaned);
-
   if (balancedBlock && balancedBlock !== cleaned) {
     attempts.push(balancedBlock);
     attempts.push(repairJsonClosures(balancedBlock));
   }
-
   attempts.push(repairJsonClosures(cleaned));
 
   for (const attempt of attempts) {
     try {
       const phrases = normalizePhrases(JSON.parse(attempt));
       if (phrases.length > 0) return phrases;
-    } catch {
-      // Continue with fallback parsing strategies below.
-    }
+    } catch { /* continue */ }
   }
 
   const objects = extractObjectsFromArray(cleaned)
     .map((objectText) => {
-      try {
-        return JSON.parse(objectText);
-      } catch {
-        try {
-          return JSON.parse(repairJsonClosures(objectText));
-        } catch {
-          return null;
-        }
+      try { return JSON.parse(objectText); }
+      catch {
+        try { return JSON.parse(repairJsonClosures(objectText)); }
+        catch { return null; }
       }
     })
     .filter(Boolean);
@@ -267,8 +223,8 @@ serve(async (req) => {
   }
 
   try {
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const { language, userLevel, phrasesCompleted } = await req.json();
 
@@ -304,45 +260,48 @@ Rules:
 
 Return ONLY the JSON array.`;
 
-    const callGemini = (model: string) =>
-      fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": GEMINI_API_KEY,
-        },
-        body: JSON.stringify({
-          system_instruction: { parts: [{ text: systemPrompt }] },
-          contents: [{ role: "user", parts: [{ text: `Generate 12 ${tier}-level pronunciation phrases in ${langName}.` }] }],
-          generationConfig: { temperature: 0.9, maxOutputTokens: 8192, responseMimeType: "application/json" },
-        }),
-      });
+    const response = await fetch(AI_GATEWAY_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: `Generate 12 ${tier}-level pronunciation phrases in ${langName}. Return only the JSON array.` },
+        ],
+        temperature: 0.9,
+        max_tokens: 8192,
+      }),
+    });
 
-    const models = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash-lite"];
-    let response: Response | null = null;
-
-    for (const model of models) {
-      response = await callGemini(model);
-      if (response.ok) break;
-      const errText = await response.text();
-      console.error(`Gemini ${model} error:`, response.status, errText);
-      if (response.status !== 503 && response.status !== 429) {
-        throw new Error(`Gemini API error: ${response.status}`);
+    if (!response.ok) {
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ error: "AI is temporarily busy. Please retry in a moment." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
-    }
-
-    if (!response || !response.ok) {
-      throw new Error("All Gemini models unavailable");
+      if (response.status === 402) {
+        return new Response(
+          JSON.stringify({ error: "AI credits exhausted. Please add funds." }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const errText = await response.text();
+      console.error("AI Gateway error:", response.status, errText);
+      throw new Error(`AI Gateway error: ${response.status}`);
     }
 
     const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
+    const text = data.choices?.[0]?.message?.content || "[]";
 
     let phrases = parsePhrasesResponse(text);
     if (phrases.length < 12) {
       const fallback = buildFallbackPhrases(language);
       const seen = new Set(phrases.map((phrase) => phrase.text.toLowerCase()));
-
       for (const phrase of fallback) {
         if (phrases.length >= 12) break;
         if (seen.has(phrase.text.toLowerCase())) continue;
