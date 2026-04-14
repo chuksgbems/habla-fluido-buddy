@@ -21,6 +21,10 @@ interface VocabItem {
 
 type PracticeMode = "flashcards" | "multiple-choice" | "typing" | "speaking";
 
+function normalize(text: string): string {
+  return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9\s]/g, "").trim();
+}
+
 export default function Practice() {
   const [mode, setMode] = useState<PracticeMode>("flashcards");
   const [vocabulary, setVocabulary] = useState<VocabItem[]>([]);
@@ -31,6 +35,9 @@ export default function Practice() {
   const [feedback, setFeedback] = useState<"correct" | "incorrect" | null>(null);
   const [choices, setChoices] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isListening, setIsListening] = useState(false);
+  const [transcript, setTranscript] = useState("");
+  const [speakFeedback, setSpeakFeedback] = useState<"correct" | "incorrect" | null>(null);
   const { toast } = useToast();
   const { profile } = useAuth();
 
@@ -66,8 +73,52 @@ export default function Practice() {
 
   const currentWord = vocabulary[currentIndex];
 
-  const nextWord = () => { setShowAnswer(false); setUserInput(""); setFeedback(null); setCurrentIndex((prev) => (prev + 1) % vocabulary.length); };
-  const prevWord = () => { setShowAnswer(false); setUserInput(""); setFeedback(null); setCurrentIndex((prev) => (prev - 1 + vocabulary.length) % vocabulary.length); };
+  const resetSpeakState = () => { setTranscript(""); setSpeakFeedback(null); setIsListening(false); };
+  const nextWord = () => { setShowAnswer(false); setUserInput(""); setFeedback(null); resetSpeakState(); setCurrentIndex((prev) => (prev + 1) % vocabulary.length); };
+  const prevWord = () => { setShowAnswer(false); setUserInput(""); setFeedback(null); resetSpeakState(); setCurrentIndex((prev) => (prev - 1 + vocabulary.length) % vocabulary.length); };
+
+  const startListening = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast({ title: "Not supported", description: "Speech recognition is not supported in your browser. Try Chrome.", variant: "destructive" });
+      return;
+    }
+    setSpeakFeedback(null);
+    setTranscript("");
+    setIsListening(true);
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = lang.speechLang;
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 3;
+
+    recognition.onresult = (event: any) => {
+      const results = event.results[0];
+      let best = "";
+      let matched = false;
+      const expected = normalize(currentWord.spanish);
+
+      for (let i = 0; i < results.length; i++) {
+        const t = results[i].transcript;
+        if (normalize(t) === expected) { best = t; matched = true; break; }
+        if (!best) best = t;
+      }
+
+      setTranscript(best);
+      if (matched) {
+        setSpeakFeedback("correct");
+        setScore((prev) => ({ correct: prev.correct + 1, total: prev.total + 1 }));
+        setTimeout(nextWord, 1500);
+      } else {
+        setSpeakFeedback("incorrect");
+        setScore((prev) => ({ correct: prev.correct, total: prev.total + 1 }));
+      }
+    };
+
+    recognition.onerror = () => { setIsListening(false); };
+    recognition.onend = () => { setIsListening(false); };
+    recognition.start();
+  };
 
   const shuffleWords = () => {
     setVocabulary((prev) => [...prev].sort(() => Math.random() - 0.5));
@@ -213,9 +264,19 @@ export default function Practice() {
                 <Button variant="ghost" size="sm" className="gap-2" onClick={() => playAudio(currentWord.spanish)}><Volume2 className="h-4 w-4" />Hear {lang.label}</Button>
               </div>
               <div className="py-4">
-                <Button size="lg" className="h-16 w-16 rounded-full"><Mic className="h-6 w-6" /></Button>
-                <p className="mt-2 text-sm text-muted-foreground">Tap to record (coming soon)</p>
+                <Button size="lg" className={`h-16 w-16 rounded-full ${isListening ? "animate-pulse bg-destructive hover:bg-destructive/90" : ""}`} onClick={startListening} disabled={isListening || !!speakFeedback}>
+                  <Mic className="h-6 w-6" />
+                </Button>
+                <p className="mt-2 text-sm text-muted-foreground">{isListening ? "Listening..." : "Tap to speak"}</p>
               </div>
+              {transcript && (
+                <div className={`rounded-lg p-4 ${speakFeedback === "correct" ? "bg-primary/10" : speakFeedback === "incorrect" ? "bg-destructive/10" : "bg-muted/50"}`}>
+                  <p className="text-sm text-muted-foreground mb-1">You said:</p>
+                  <p className="font-display text-xl">{transcript}</p>
+                  {speakFeedback === "correct" && <div className="mt-2"><Check className="h-8 w-8 text-primary mx-auto" /><p className="text-primary font-medium">{lang.congratsMessage}</p></div>}
+                  {speakFeedback === "incorrect" && <div className="mt-2"><X className="h-8 w-8 text-destructive mx-auto" /><p className="text-destructive font-medium">Not quite. Try again!</p><Button size="sm" className="mt-2" onClick={() => { setSpeakFeedback(null); setTranscript(""); }}>Retry</Button></div>}
+                </div>
+              )}
               <div className="bg-muted/50 rounded-lg p-4">
                 <p className="text-sm text-muted-foreground mb-1">Expected answer:</p>
                 <p className="font-display text-xl text-primary">{currentWord.spanish}</p>
