@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronRight, Check, X, Volume2, Lightbulb, ArrowLeft, Zap, Gauge } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useStreak } from "@/hooks/useStreak";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useTTS } from "@/hooks/useTTS";
