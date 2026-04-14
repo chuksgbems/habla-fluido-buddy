@@ -69,42 +69,43 @@ serve(async (req) => {
         body: JSON.stringify(buildRequestBody()),
       });
 
-    let response = await callGemini("gemini-2.5-flash");
+    const models = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash-lite"];
+    let response: Response | null = null;
 
-    if (response.status === 429) {
-      const retryAfterHeader = response.headers.get("retry-after");
-      const retryDelayMs = Math.min(Math.max(Number(retryAfterHeader || "1"), 1), 4) * 1000;
-      await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
-      response = await callGemini("gemini-2.5-flash");
+    for (const model of models) {
+      response = await callGemini(model);
+      if (response.ok) break;
+
+      // Retry on rate limit or temporary unavailability
+      if (response.status === 429 || response.status === 503) {
+        const errText = await response.text();
+        console.error(`Gemini ${model} error:`, response.status, errText);
+        // Small delay before trying next model
+        await new Promise((r) => setTimeout(r, 1000));
+        continue;
+      }
+
+      // Non-retryable error
+      break;
     }
 
-    if (response.status === 429) {
-      response = await callGemini("gemini-2.5-flash-lite");
-    }
-
-    if (!response.ok) {
-      const errorText = await response.text();
-
-      if (response.status === 429) {
-        console.error("Gemini rate limit:", errorText);
+    if (!response || !response.ok) {
+      const status = response?.status || 500;
+      if (status === 429) {
         return new Response(
-          JSON.stringify({
-            error: "Gemini is temporarily rate-limiting this project. Please retry in a moment.",
-            details: errorText,
-          }),
+          JSON.stringify({ error: "AI is temporarily busy. Please retry in a moment." }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-
-      if (response.status === 402) {
+      if (status === 503) {
         return new Response(
-          JSON.stringify({ error: "Usage limit reached. Please add credits to continue." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ reply: "I'm temporarily unavailable due to high demand. Please try again in a moment!" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-
-      console.error("Gemini API error:", response.status, errorText);
-      throw new Error(`Gemini API error: ${response.status}`);
+      const errorText = response ? await response.text() : "No response";
+      console.error("Gemini API error:", status, errorText);
+      throw new Error(`Gemini API error: ${status}`);
     }
 
     const data = await response.json();
