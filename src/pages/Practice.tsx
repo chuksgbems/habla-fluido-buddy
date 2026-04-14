@@ -9,6 +9,7 @@ import { RotateCcw, Check, X, Lightbulb, ChevronRight, ChevronLeft, Mic, Volume2
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useStreak } from "@/hooks/useStreak";
 import { getLanguageConfig } from "@/lib/languages";
 
 interface VocabItem {
@@ -40,6 +41,7 @@ export default function Practice() {
   const [speakFeedback, setSpeakFeedback] = useState<"correct" | "incorrect" | null>(null);
   const { toast } = useToast();
   const { profile } = useAuth();
+  const { updateStreak } = useStreak();
 
   const lang = getLanguageConfig(profile?.target_language || "spanish");
 
@@ -108,6 +110,7 @@ export default function Practice() {
       if (matched) {
         setSpeakFeedback("correct");
         setScore((prev) => ({ correct: prev.correct + 1, total: prev.total + 1 }));
+        updateStreak();
         setTimeout(nextWord, 1500);
       } else {
         setSpeakFeedback("incorrect");

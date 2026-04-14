@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronRight, Check, X, Volume2, Lightbulb, ArrowLeft, Zap, Gauge } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useStreak } from "@/hooks/useStreak";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useTTS } from "@/hooks/useTTS";
@@ -42,6 +43,7 @@ export default function LessonPlayer() {
   const { lessonId } = useParams();
   const navigate = useNavigate();
   const { user, updateProfile, profile } = useAuth();
+  const { updateStreak } = useStreak();
   const { toast } = useToast();
   const { languageConfig: lang } = useLanguage();
   const { speak, speakSlow, isSpeaking } = useTTS({ language: lang.id });
@@ -132,36 +134,8 @@ export default function LessonPlayer() {
     setScore((prev) => ({ correct: prev.correct + (correct ? 1 : 0), total: prev.total + 1 }));
   };
 
-  const updateStreak = async () => {
-    if (!user || !profile) return;
-    const today = new Date().toISOString().split("T")[0];
-    const lastActivity = profile.last_activity_date;
 
-    let newStreak = profile.streak_days || 0;
 
-    if (lastActivity === today) {
-      // Already active today, no streak change
-      return;
-    }
-
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split("T")[0];
-
-    if (lastActivity === yesterdayStr) {
-      newStreak += 1;
-    } else if (!lastActivity) {
-      newStreak = 1;
-    } else {
-      // Streak broken, reset to 1
-      newStreak = 1;
-    }
-
-    await updateProfile({
-      streak_days: newStreak,
-      last_activity_date: today,
-    });
-  };
 
   const nextExercise = async () => {
     if (!lesson) return;
