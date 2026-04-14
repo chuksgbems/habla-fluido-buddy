@@ -15,6 +15,7 @@ import Practice from "./pages/Practice";
 import Pronunciation from "./pages/Pronunciation";
 import ProgressPage from "./pages/Progress";
 import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
@@ -38,6 +39,7 @@ const App = () => (
                 <Route path="/pronunciation" element={<AuthGuard><Pronunciation /></AuthGuard>} />
                 <Route path="/progress" element={<AuthGuard><ProgressPage /></AuthGuard>} />
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/settings" element={<AuthGuard><Settings /></AuthGuard>} />
                 <Route path="*" element={<NotFound />} />
               </Route>
