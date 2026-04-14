@@ -9,6 +9,7 @@ import { RotateCcw, Check, X, Lightbulb, ChevronRight, ChevronLeft, Mic, Volume2
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useStreak } from "@/hooks/useStreak";
 import { getLanguageConfig } from "@/lib/languages";
 
 interface VocabItem {
