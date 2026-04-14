@@ -5,8 +5,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const AI_GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
-
 interface ChatRequest {
   message: string;
   mode: "coach" | "free";
@@ -24,9 +22,9 @@ serve(async (req) => {
   }
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) {
+      throw new Error("GEMINI_API_KEY is not configured");
     }
 
     const { 
@@ -43,50 +41,72 @@ serve(async (req) => {
     const systemPrompt = buildSystemPrompt(mode, topic, userLevel, coachStyle, explainInEnglish, targetLanguage);
 
     const history = conversationHistory.slice(-10).map((msg) => ({
-      role: msg.role === "assistant" ? "assistant" : "user",
-      content: msg.content,
+      role: msg.role === "assistant" ? "model" : "user",
+      parts: [{ text: msg.content }],
     }));
 
     const temperature = mode === "free" ? 0.85 : 0.7;
 
-    const response = await fetch(AI_GATEWAY_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...history,
-          { role: "user", content: message },
-        ],
+    const buildRequestBody = () => ({
+      system_instruction: { parts: [{ text: systemPrompt }] },
+      contents: [
+        ...history,
+        { role: "user", parts: [{ text: message }] },
+      ],
+      generationConfig: {
         temperature,
-        max_tokens: 1024,
-      }),
+        maxOutputTokens: 1024,
+      },
     });
 
-    if (!response.ok) {
-      if (response.status === 429) {
+    const callGemini = (model: string) =>
+      fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": GEMINI_API_KEY,
+        },
+        body: JSON.stringify(buildRequestBody()),
+      });
+
+    const models = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash-lite"];
+    let response: Response | null = null;
+
+    for (const model of models) {
+      response = await callGemini(model);
+      if (response.ok) break;
+
+      if (response.status === 429 || response.status === 503) {
+        const errText = await response.text();
+        console.error(`Gemini ${model} error:`, response.status, errText);
+        await new Promise((r) => setTimeout(r, 1000));
+        continue;
+      }
+
+      break;
+    }
+
+    if (!response || !response.ok) {
+      const status = response?.status || 500;
+      if (status === 429) {
         return new Response(
           JSON.stringify({ error: "AI is temporarily busy. Please retry in a moment." }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      if (response.status === 402) {
+      if (status === 503) {
         return new Response(
-          JSON.stringify({ error: "AI credits exhausted. Please add funds in workspace settings." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ reply: "I'm temporarily unavailable due to high demand. Please try again in a moment!" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      const errorText = await response.text();
-      console.error("AI Gateway error:", response.status, errorText);
-      throw new Error(`AI Gateway error: ${response.status}`);
+      const errorText = response ? await response.text() : "No response";
+      console.error("Gemini API error:", status, errorText);
+      throw new Error(`Gemini API error: ${status}`);
     }
 
     const data = await response.json();
-    const reply = data.choices?.[0]?.message?.content || "Sorry, I couldn't generate a response.";
+    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I couldn't generate a response.";
 
     return new Response(
       JSON.stringify({ reply }),

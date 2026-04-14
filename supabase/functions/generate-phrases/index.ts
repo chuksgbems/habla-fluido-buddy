@@ -5,8 +5,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const AI_GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
-
 type Phrase = {
   text: string;
   english: string;
@@ -223,8 +221,8 @@ serve(async (req) => {
   }
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
 
     const { language, userLevel, phrasesCompleted } = await req.json();
 
@@ -260,43 +258,39 @@ Rules:
 
 Return ONLY the JSON array.`;
 
-    const response = await fetch(AI_GATEWAY_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: `Generate 12 ${tier}-level pronunciation phrases in ${langName}. Return only the JSON array.` },
-        ],
-        temperature: 0.9,
-        max_tokens: 8192,
-      }),
-    });
+    const callGemini = (model: string) =>
+      fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": GEMINI_API_KEY,
+        },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: systemPrompt }] },
+          contents: [{ role: "user", parts: [{ text: `Generate 12 ${tier}-level pronunciation phrases in ${langName}.` }] }],
+          generationConfig: { temperature: 0.9, maxOutputTokens: 8192, responseMimeType: "application/json" },
+        }),
+      });
 
-    if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "AI is temporarily busy. Please retry in a moment." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "AI credits exhausted. Please add funds." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
+    const models = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash-lite"];
+    let response: Response | null = null;
+
+    for (const model of models) {
+      response = await callGemini(model);
+      if (response.ok) break;
       const errText = await response.text();
-      console.error("AI Gateway error:", response.status, errText);
-      throw new Error(`AI Gateway error: ${response.status}`);
+      console.error(`Gemini ${model} error:`, response.status, errText);
+      if (response.status !== 503 && response.status !== 429) {
+        throw new Error(`Gemini API error: ${response.status}`);
+      }
+    }
+
+    if (!response || !response.ok) {
+      throw new Error("All Gemini models unavailable");
     }
 
     const data = await response.json();
-    const text = data.choices?.[0]?.message?.content || "[]";
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
 
     let phrases = parsePhrasesResponse(text);
     if (phrases.length < 12) {

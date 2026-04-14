@@ -5,8 +5,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const AI_GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
-
 interface ExerciseRequest {
   lessonTitle: string;
   language: string;
@@ -20,8 +18,8 @@ serve(async (req) => {
   }
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
 
     const { lessonTitle, language, userLevel, lessonsCompleted }: ExerciseRequest = await req.json();
 
@@ -61,62 +59,54 @@ Rules:
 
 Return ONLY the JSON array, no markdown, no explanation.`;
 
-    const response = await fetch(AI_GATEWAY_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: `Generate 6 ${difficultyProgression}-difficulty exercises for the "${lessonTitle}" lesson in ${langName}. Return only the JSON array.` },
-        ],
-        temperature: 0.8,
-        max_tokens: 8192,
-      }),
-    });
+    const callGemini = (model: string) =>
+      fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": GEMINI_API_KEY,
+        },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: systemPrompt }] },
+          contents: [{ role: "user", parts: [{ text: `Generate 6 ${difficultyProgression}-difficulty exercises for the "${lessonTitle}" lesson in ${langName}. Return only the JSON array.` }] }],
+          generationConfig: { temperature: 0.8, maxOutputTokens: 8192, responseMimeType: "application/json" },
+        }),
+      });
 
-    if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "AI is temporarily busy. Please retry in a moment." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "AI credits exhausted. Please add funds." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
+    const models = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash-lite"];
+    let response: Response | null = null;
+
+    for (const model of models) {
+      response = await callGemini(model);
+      if (response.ok) break;
       const errText = await response.text();
-      console.error("AI Gateway error:", response.status, errText);
-      throw new Error(`AI Gateway error: ${response.status}`);
+      console.error(`Gemini ${model} error:`, response.status, errText);
+      if (response.status !== 503 && response.status !== 429) {
+        throw new Error(`Gemini API error: ${response.status}`);
+      }
+    }
+
+    if (!response || !response.ok) {
+      throw new Error("All Gemini models unavailable");
     }
 
     const data = await response.json();
-    let text = data.choices?.[0]?.message?.content || "[]";
+    let text = data.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
 
-    // Strip markdown code fences if present
     text = text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
 
-    // Find JSON array boundaries
     const jsonStart = text.indexOf("[");
     const jsonEnd = text.lastIndexOf("]");
     if (jsonStart !== -1 && jsonEnd > jsonStart) {
       text = text.substring(jsonStart, jsonEnd + 1);
     }
 
-    // Clean control chars and trailing commas
     text = text.replace(/,\s*([}\]])/g, "$1").replace(/[\x00-\x1F\x7F]/g, "");
 
     let exercises;
     try {
       exercises = JSON.parse(text);
     } catch {
-      // Try to salvage truncated JSON
       const lastComplete = text.lastIndexOf("}");
       if (lastComplete !== -1) {
         const salvaged = text.substring(0, lastComplete + 1) + "]";
