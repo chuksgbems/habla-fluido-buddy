@@ -69,7 +69,7 @@ Return ONLY the JSON array, no markdown, no explanation.`;
         body: JSON.stringify({
           system_instruction: { parts: [{ text: systemPrompt }] },
           contents: [{ role: "user", parts: [{ text: `Generate 6 ${difficultyProgression}-difficulty exercises for the "${lessonTitle}" lesson in ${langName}. Return only the JSON array.` }] }],
-          generationConfig: { temperature: 0.8, maxOutputTokens: 2048 },
+          generationConfig: { temperature: 0.8, maxOutputTokens: 8192, responseMimeType: "application/json" },
         }),
       });
 
@@ -97,12 +97,34 @@ Return ONLY the JSON array, no markdown, no explanation.`;
     // Strip markdown code fences if present
     text = text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
 
+    // Find JSON array boundaries
+    const jsonStart = text.indexOf("[");
+    const jsonEnd = text.lastIndexOf("]");
+    if (jsonStart !== -1 && jsonEnd > jsonStart) {
+      text = text.substring(jsonStart, jsonEnd + 1);
+    }
+
+    // Clean control chars and trailing commas
+    text = text.replace(/,\s*([}\]])/g, "$1").replace(/[\x00-\x1F\x7F]/g, "");
+
     let exercises;
     try {
       exercises = JSON.parse(text);
     } catch {
-      console.error("Failed to parse exercises JSON:", text);
-      throw new Error("Failed to parse AI-generated exercises");
+      // Try to salvage truncated JSON
+      const lastComplete = text.lastIndexOf("}");
+      if (lastComplete !== -1) {
+        const salvaged = text.substring(0, lastComplete + 1) + "]";
+        try {
+          exercises = JSON.parse(salvaged);
+        } catch {
+          console.error("Failed to parse exercises JSON:", text.substring(0, 500));
+          throw new Error("Failed to parse AI-generated exercises");
+        }
+      } else {
+        console.error("Failed to parse exercises JSON:", text.substring(0, 500));
+        throw new Error("Failed to parse AI-generated exercises");
+      }
     }
 
     return new Response(
