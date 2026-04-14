@@ -264,9 +264,19 @@ export default function Practice() {
                 <Button variant="ghost" size="sm" className="gap-2" onClick={() => playAudio(currentWord.spanish)}><Volume2 className="h-4 w-4" />Hear {lang.label}</Button>
               </div>
               <div className="py-4">
-                <Button size="lg" className="h-16 w-16 rounded-full"><Mic className="h-6 w-6" /></Button>
-                <p className="mt-2 text-sm text-muted-foreground">Tap to record (coming soon)</p>
+                <Button size="lg" className={`h-16 w-16 rounded-full ${isListening ? "animate-pulse bg-destructive hover:bg-destructive/90" : ""}`} onClick={startListening} disabled={isListening || !!speakFeedback}>
+                  <Mic className="h-6 w-6" />
+                </Button>
+                <p className="mt-2 text-sm text-muted-foreground">{isListening ? "Listening..." : "Tap to speak"}</p>
               </div>
+              {transcript && (
+                <div className={`rounded-lg p-4 ${speakFeedback === "correct" ? "bg-primary/10" : speakFeedback === "incorrect" ? "bg-destructive/10" : "bg-muted/50"}`}>
+                  <p className="text-sm text-muted-foreground mb-1">You said:</p>
+                  <p className="font-display text-xl">{transcript}</p>
+                  {speakFeedback === "correct" && <div className="mt-2"><Check className="h-8 w-8 text-primary mx-auto" /><p className="text-primary font-medium">{lang.congratsMessage}</p></div>}
+                  {speakFeedback === "incorrect" && <div className="mt-2"><X className="h-8 w-8 text-destructive mx-auto" /><p className="text-destructive font-medium">Not quite. Try again!</p><Button size="sm" className="mt-2" onClick={() => { setSpeakFeedback(null); setTranscript(""); }}>Retry</Button></div>}
+                </div>
+              )}
               <div className="bg-muted/50 rounded-lg p-4">
                 <p className="text-sm text-muted-foreground mb-1">Expected answer:</p>
                 <p className="font-display text-xl text-primary">{currentWord.spanish}</p>
