@@ -35,6 +35,9 @@ export default function Practice() {
   const [feedback, setFeedback] = useState<"correct" | "incorrect" | null>(null);
   const [choices, setChoices] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isListening, setIsListening] = useState(false);
+  const [transcript, setTranscript] = useState("");
+  const [speakFeedback, setSpeakFeedback] = useState<"correct" | "incorrect" | null>(null);
   const { toast } = useToast();
   const { profile } = useAuth();
 
