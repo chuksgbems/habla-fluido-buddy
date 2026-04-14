@@ -73,8 +73,52 @@ export default function Practice() {
 
   const currentWord = vocabulary[currentIndex];
 
-  const nextWord = () => { setShowAnswer(false); setUserInput(""); setFeedback(null); setCurrentIndex((prev) => (prev + 1) % vocabulary.length); };
-  const prevWord = () => { setShowAnswer(false); setUserInput(""); setFeedback(null); setCurrentIndex((prev) => (prev - 1 + vocabulary.length) % vocabulary.length); };
+  const resetSpeakState = () => { setTranscript(""); setSpeakFeedback(null); setIsListening(false); };
+  const nextWord = () => { setShowAnswer(false); setUserInput(""); setFeedback(null); resetSpeakState(); setCurrentIndex((prev) => (prev + 1) % vocabulary.length); };
+  const prevWord = () => { setShowAnswer(false); setUserInput(""); setFeedback(null); resetSpeakState(); setCurrentIndex((prev) => (prev - 1 + vocabulary.length) % vocabulary.length); };
+
+  const startListening = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast({ title: "Not supported", description: "Speech recognition is not supported in your browser. Try Chrome.", variant: "destructive" });
+      return;
+    }
+    setSpeakFeedback(null);
+    setTranscript("");
+    setIsListening(true);
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = lang.speechLang;
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 3;
+
+    recognition.onresult = (event: any) => {
+      const results = event.results[0];
+      let best = "";
+      let matched = false;
+      const expected = normalize(currentWord.spanish);
+
+      for (let i = 0; i < results.length; i++) {
+        const t = results[i].transcript;
+        if (normalize(t) === expected) { best = t; matched = true; break; }
+        if (!best) best = t;
+      }
+
+      setTranscript(best);
+      if (matched) {
+        setSpeakFeedback("correct");
+        setScore((prev) => ({ correct: prev.correct + 1, total: prev.total + 1 }));
+        setTimeout(nextWord, 1500);
+      } else {
+        setSpeakFeedback("incorrect");
+        setScore((prev) => ({ correct: prev.correct, total: prev.total + 1 }));
+      }
+    };
+
+    recognition.onerror = () => { setIsListening(false); };
+    recognition.onend = () => { setIsListening(false); };
+    recognition.start();
+  };
 
   const shuffleWords = () => {
     setVocabulary((prev) => [...prev].sort(() => Math.random() - 0.5));
